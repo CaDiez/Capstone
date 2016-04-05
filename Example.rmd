@@ -1,0 +1,17 @@
+Load libraries used for this report
+```{r, hide results, warning=FALSE , message=FALSE }
+library(tm) 
+library(stringi)
+library(SnowballC)
+library(ggplot2)
+library(data.table)
+library(quanteda)
+```
+
+Read blogs file
+```{r, warning=FALSE , message=FALSE }
+cname<-file.path("~", "Data Science Specialization", "10 Data Science Capstone", "Dataset", "en_US")
+con <- file(paste(cname,"/en_US.blogs.txt",sep=""), open = "rb")
+blogs <- readLines(con, encoding="latin1")
+close(con)
+```

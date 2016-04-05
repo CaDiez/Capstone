@@ -1,0 +1,314 @@
+---
+title: "Capstone Milestone Report"
+author: "Carlos Alberto Guevara Diez"
+date: "March 2016"
+output: html_document
+---
+  
+Summary
+==============================================================================================
+The goal of this project is just to display that we've gotten used to working with the Swiftkey data and that we're on track to create our prediction algorithm. The motivation for this project is to load data from text sources, create basic reports of summary statistics, report interesting findings and get some insights of the next steps to follow in order to create a shiny app that predicts text.
+
+1. Loading the data
+--------------------------------------------------------------
+```{r, warning=FALSE , message=FALSE, echo=FALSE}
+#Libraries needes
+require(tm) 
+require(stringi)
+require(SnowballC)
+require(ggplot2)
+require(data.table)
+require(quanteda)
+require (knitr)
+```
+The first thing I need to do is to load the data into R, once that is in memory I´m going to perform some counting on the objects, size of each one of them and frequency analysis, with this I´m goint to undersand the information that I´m handling. For demostrating purposes I´m going to show only pieces of code that performs the operations behind the data, nevertheless if the reader wants to dig into de code, the .Rmd file can be found in my [Github page](https://github.com/CaDiez/Capstone/tree/master/Milestone%20Report)
+
+```{r, warning=FALSE , message=FALSE}
+#Read blogs file
+cname<-file.path("~", "Data Science", "10 Data Science Capstone", "Dataset", "en_US")
+con <- file(paste(cname,"/en_US.blogs.txt",sep=""), open = "rb")
+blogs <- readLines(con, encoding="UTF-8")
+close(con)
+#Read news file
+con <- file(paste(cname,"/en_US.news.txt",sep=""), open = "rb")
+news <- readLines(con, encoding="UTF-8")
+close(con)
+#Read twitter file
+con <- file(paste(cname,"/en_US.twitter.txt",sep=""), open = "rb")
+tweets <- readLines(con, encoding="UTF-8")
+close(con)
+```
+
+2. Analyzing the size of files and number of words
+--------------------------------------------------------------
+Once the data have been loaded into R it´s time to build a basic statistical report that shows the main characteristics of the data.
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE}
+file <- c("blogs", "news", "tweets")
+
+## Size
+nsize <- c(round(object.size(blogs)/(10^6),2), round(object.size(news)/(10^6), 2),
+                   round(object.size(tweets)/(10^6), 2))
+
+## Number of lines
+nlines <- c(length(blogs), length(news), length(tweets))
+
+
+## Number of characters
+chars <- c(sum(nchar(blogs)), sum(nchar(news)), sum(nchar(tweets)))
+
+Table <- data.frame("File" = file, "Object size (MB)"=format(nsize, big.mark=",", small.mark=",", nsmall=2),"Number of lines"= format(nlines, big.mark=",", small.mark=",", nsmall=2),"Number of characters"= format(chars, big.mark=",", small.mark=",", nsmall=2))
+
+kable(Table)
+```
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE}
+#I'm going to use the following function to evaluate the number of words en each file
+#Is not going to de printed in the report.
+
+analysisFunction <- function(fileset) {
+  ## Join the elements of a character vector into one string
+  setString <- stri_flatten(fileset, collapse =" ")
+  ## Extracts all words from the string
+  setWords <- unlist(stri_extract_all_words(setString, locale = "en"))
+    ## Transform strings to lower case to identify unique words correctly
+  setWords <- stri_trans_tolower(setWords, locale = "en")
+  return(setWords)
+}
+```
+Now its time to look at the number of words and unique words in every file
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE}
+## Total number of words in blogs 
+bWords<-analysisFunction(blogs)
+
+## Total number of words in blogs 
+nWords<-analysisFunction(news)
+
+## Total number of words in blogs 
+tWords<-analysisFunction(tweets)
+
+## Number of Words
+numWords <- c(length(bWords), length(nWords),length(tWords))
+
+## Number of Unique Words
+uWords <- c(length(unique(bWords)), length(unique(nWords)),length(unique(tWords)))
+
+Table <- data.frame("File" = file, "Number of words"=format(numWords, big.mark=",", small.mark=",", nsmall=2),"Number of Unique Words" = format(uWords, big.mark=",", small.mark=",", nsmall=2))
+
+kable(Table)
+```
+
+With this information I can say that the largest dataset it´s the one that comes from twitter, in size represents the 37 % of the entire data set, nevertheless is the one which have less words.
+
+The entire data set (the 3 files) contains more than 4 million of lines, 574 million of characters and 103 million of words, that is a big amount of data to handle.
+
+3. Creating sample of the data, cleaning and profanity filtering
+--------------------------------------------------------------
+As it can be seen in the last section, the dataset is too big and also a large amount of computational resources are needed to process it, thats why to make further analysis easier and faster, I've created a random sample of the data by selecting 5000 rows from each file. With this samples I´m creating a new dataset that contains random information (using binomial distribution) that will be used as the corpus for the rest of the analysis. A [corpus](https://en.wikipedia.org/wiki/Text_corpus) (plural corpora) or text corpus is a large and structured set of texts (nowadays usually electronically stored and processed). They are used to do statistical analysis and hypothesis testing, checking occurrences or validating linguistic rules within a specific language territory.
+
+```{r, warning=FALSE , message=FALSE}
+set.seed(10)
+sample=400000
+
+# Creating sample files of 5000 lines for each dataset
+blogsSample = blogs[rbinom(sample, length(blogs),0.5)]
+newsSample = news[rbinom(sample, length(news),0.5)]
+tweetSample = tweets[rbinom(sample, length(tweets),0.5)]
+
+# Merging the sample datasets into one
+sampleDS = c(blogsSample, newsSample, tweetSample)
+#sampleDS = c(blogs, news, tweets)
+```
+
+Now it´s time to clean the sampled dataset and remove profanities, the cleaning proces includes:
+
+ * Remove special characters
+ * Remove punctuations
+ * Remove numbers
+ * Remove extra whitespace
+ * Convert to lowercase
+ * Remove stop words
+ * Remove profanity words. 
+
+The list for profanity filtering was obtained from <a href ="http://www.cs.cmu.edu/~biglou/resources/bad-words.txt"> http://www.cs.cmu.edu/~biglou/resources/bad-words.txt </a> that contaions around 1400 bad words. Finally the new corpus with the cleaned and filtered data is created.
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE}
+## Set URL for downloading profanity words list
+fileUrl <- "http://www.cs.cmu.edu/~biglou/resources/bad-words.txt"
+
+## Set file name for the curse words file download
+fileName <- "~/Data Science/10 Data Science Capstone/Dataset/badWords.txt"
+badWords <- c()
+
+## Download the curse words file
+download.file(fileUrl, destfile=fileName)
+badWords <- readLines(fileName)
+```
+
+```{r, warning=FALSE , message=FALSE}
+#Function created to transform and remove undesired features from the dataset.
+cleaningFunction = function(x) {
+  x <- gsub("/|\\||@|#", "", x)  # Remove special characters
+  x <- removePunctuation(x)      # Remove puntuations
+  x <- removeNumbers(x)          # Remove numbers
+  x <- stripWhitespace(x)        # Remove extra whitespace
+  x <- tolower(x)                # Convert to lowercase
+  x <- removeWords(x,tm::stopwords(kind="en"))  # Remove stop words
+  x <- removeWords(x,badWords)         # Remove profanity words
+  x <- stemDocument(x)           # Removing commond word endings
+  return(unlist(x))
+}
+#Remove emojis
+print("1")
+sampleDS <- iconv(sampleDS, 'UTF-8', 'ASCII')
+print("ya converti")
+sampleDS <- cleaningFunction(sampleDS)
+print("ya limpie")
+#Print a summary of the transformed dataset
+data.table("Lines" = length(sampleDS), "Words" = sum(nchar(sampleDS)))
+
+save(sampleDS, file='~/Data Science/10 Data Science Capstone/Dataset/cleanCrpus.RData')
+print("papas")
+
+#Corpus created for further analysis
+cleanCrps <- corpus(sampleDS)
+
+saveRDS(sampleDS, file <- "~/Data Science/10 Data Science Capstone/Dataset/cleanCrpus.RDS") 
+print("Guerde1")
+save(sampleDS, file='~/Data Science/10 Data Science Capstone/Dataset/cleanCrpus.RData')
+print("Guerde2")
+```
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE}
+# Save a copy of the corpus
+saveRDS(sampleDS, file <- "~/Data Science Specialization/10 Data Science Capstone/Capstone/Dataset/cleanCrpus.RDS") 
+save(txt.clean, file='~/Data Science/10 Data Science Capstone/Capstone/Dataset/cleanCrpus.RData')
+
+#Clean memory
+rm(blogs);rm(blogsSample);
+rm(news);rm(tweets)
+```
+
+4. Performing basic words frequency analysis on Sampled Corpus
+-------------------------------------------------
+Now that I have a clean and filtered sampled corpus it´s time to do some frequency analysis to understand its structure, to do that I'm using a Document Term Matrix which is a mathematical matrix that describes the frequency of terms that occur in a collection of documents. In a document-term matrix, rows correspond to documents in the collection and columns correspond to terms.
+
+```{r, warning=FALSE , message=FALSE}
+cleanCrps2 <- Corpus(VectorSource(sampleDS))
+dtm <- DocumentTermMatrix(cleanCrps2)
+```
+
+The first analysis is to find the 20 most frequently used words:
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE}
+rm(cleanCrps2)
+
+wordFreq <- findFreqTerms(dtm, lowfreq=500)
+
+# Find a frequency of words and sort it in descending order
+bfreq <- sort(colSums(as.matrix(dtm)), decreasing=TRUE)
+
+#Create a data frame of frequencies
+wf <- data.frame(word = names(bfreq), freq = bfreq)
+# Create subset of words with a frequency greater than 800
+swf <- subset(wf, freq > 800)
+head(wordFreq, 20)
+```
+
+Now I'm showing a plot for words which frequencies in the corpus are bigger than 800
+
+```{r, warning=FALSE , message=FALSE, echo = FALSE, fig.align='center', fig.height=3}
+ggplot(swf, aes(x=word, y=freq, fill=word), ) + 
+geom_bar(stat="identity") + 
+theme(axis.text.x=element_text(angle=45, hjust=1))
+```
+
+With this I´m ending the basic exploratory analyses and start with the real core of text processing.
+
+5. N-Grams, Tokenization and Plots
+-------------------------------------------------------------------------
+One of the most important concepts in Natural Language Processing (NLP) are the use of N-Gram and tokenization to create prediction text models, in the fields of computational linguistics and probability, an n-gram is a contiguous sequence of n items from a given sequence of text or speech. The items can be phonemes, syllables, letters, words or base pairs according to the application. The n-grams typically are collected from a text or speech corpus. When the items are words, n-grams may also be called shingles. An n-gram of size 1 is referred to as a "unigram"; size 2 is a "bigram" (or, less commonly, a "digram"); size 3 is a "trigram". Larger sizes are sometimes referred to by the value of n, e.g., "four-gram", "five-gram", and so on.
+
+Tokenization is the process of breaking a stream of text up into words, phrases, symbols, or other meaningful elements called tokens. The list of tokens becomes input for further processing such as parsing or text mining. Tokenization is useful both in linguistics (where it is a form of text segmentation), and in computer science, where it forms part of lexical analysis.
+
+With this two main concepts, I have built unigrams, bigrams and trigrams that will be used in future stages of this project to build the prediction model and later the shiny application that is going to be used as the interface with the user, next I'm showing exploratory graphics on the n-grams.
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE}
+# define profane text
+profanity <- as.character(read.table("../badWords.txt", sep = ",")$V1)
+
+uniGrams <- dfm(cleanCrps, verbose=FALSE, ngrams=1, ignoredFeatures=c(profanity, stopwords("english"))) # Create uni-grams
+saveRDS(uniGrams, file <- "~/Data Science Specialization/10 Data Science Capstone/Capstone/Dataset/unigrams.RDS")
+biGrams <- dfm(cleanCrps, verbose=FALSE, ngrams=2, concatenator=" ") # Create bi-grams
+saveRDS(biGrams, file <- "~/Data Science Specialization/10 Data Science Capstone/Capstone/Dataset/bigrams.RDS")
+triGrams <- dfm(cleanCrps, verbose=FALSE, ngrams=3, concatenator=" ") # Create tri-grams
+saveRDS(triGrams, file <- "~/Data Science Specialization/10 Data Science Capstone/Capstone/Dataset/trigrams.RDS")
+quadGrams <- dfm(cleanCrps, verbose=FALSE, ngrams=4, concatenator=" ") # Create quad-grams
+saveRDS(quadGrams, file <- "~/Data Science Specialization/10 Data Science Capstone/Capstone/Dataset/quadgrams.RDS")
+```
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE}
+# Create function to create document frequency dataframe for generating plots
+getDF <- function(x){
+    Df <- as.data.frame(as.matrix(docfreq(x)))
+    Df <- sort(rowSums(Df), decreasing = TRUE)
+    Df <- data.frame(Words=names(Df), Frequency=Df)
+    Df
+}
+```
+
+### Top Unigrams
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE, fig.align='center', fig.height=3}
+# Show the first 25 most frequently occuring unigram words
+plotUni <- ggplot(getDF(uniGrams)[1:25,], aes(x=reorder(Words, Frequency), y=Frequency)) +
+    geom_bar(stat = "identity", fill="darkorange") +  coord_flip() +
+    theme(legend.title=element_blank()) +
+    xlab("Unigram") + ylab("Frequency") +
+    labs(title = "Top Unigrams by Frequency")
+
+print(plotUni) # View the uni-gram plot
+```
+
+### Top Bigrams
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE, fig.align='center', fig.height=3}
+# Show the first 25 most frequently occuring bigram words
+plotBi <- ggplot(getDF(biGrams)[1:25,], aes(x=reorder(Words, Frequency), y=Frequency)) +
+    geom_bar(stat = "identity", fill="darkred") +  coord_flip() +
+    theme(legend.title=element_blank()) +
+    xlab("Bigram") + ylab("Frequency") +
+    labs(title = "Top Bigrams by Frequency")
+
+print(plotBi) # View the bi-gram plot
+```
+
+### Top Trigrams
+
+```{r, warning=FALSE , message=FALSE, echo=FALSE, fig.align='center', fig.height=3}
+# Show the first 25 most frequently occuring trigram words
+plotTri <- ggplot(getDF(triGrams)[1:25,], aes(x=reorder(Words, Frequency), y=Frequency)) +
+    geom_bar(stat = "identity", fill="blue") +  coord_flip() +
+    theme(legend.title=element_blank()) +
+    xlab("Trigram") + ylab("Frequency") +
+    labs(title = "Top Trigrams by Frequency")
+
+print(plotTri) # View the tri-gram plot
+```
+
+
+6. Conclusions and future steps
+-------------------------------------------------------------------------
+
+Text analysis is fascinating, the theories and concepts involved in it are amazing and R provides a good set of libraries to deal with it, nevertheless, when you perform this type of analysis you have to be careful because the computational resources involved are huge.
+
+Thru this analysis I have demonstrated the size of the objects handled, even I have to get a subset of the original data to move on more complicated tasks as the creation of n-grams. Despite of the sampling my machine had problems to deal with the calculations, thats why when you decide to create this kind of applications you have to be careful in the selection of data, keep monitored your computational resources and even think in compressing techniques.
+
+I really have enyojed building this report and I hope that you enjoy reading it too, also I have understand that I need to explore more on the techniques to get to the final result, the following steps to follow are:
+
+* Dig in on papers about Natural Language Processing (NLP), creation of N-Grams and Markov Chains, a deeper study of the tm, quantena and Rweka packages to optimize my previous analyses.
+* Create an initial prediction model that helps me to understand deeper the concepts involved in text prediction.
+* Create a Shiny application that will consume the NLP model and a user friendly presentation of its use.
+
+I really understand that what I´ve presented is only the beginning and there´s a lot of work coming,thank you for reading!.
