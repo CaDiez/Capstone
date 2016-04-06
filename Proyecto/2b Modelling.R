@@ -1,4 +1,4 @@
-# setwd('./Dropbox/coursera_capstone_project')
+#Create a probabililistic Model of the tokenized and cleaned data in step 1
 
 library('tau')
 library('tm')
@@ -10,20 +10,14 @@ library('reshape2')
 library('parallel')
 options('mc.cores' =  4)
 
-#load('final/en_US/en_US_corpus_clean.RData') # load SampleDS as a corpus
 load('~/Data Science/10 Data Science Capstone/Capstone/Proyecto/Otro/cleanCorpus2.RData') # load SampleDS as a corpus
-# load('final/en_US_short/en_US_corpus_clean_short.RData') # load SampleDS as a corpus
 
 
 ##' Count n-gram by skipping one word
 ##'
 ##' Function to take any text taking lower case and counting the number
 ##' of sequence of words in the text by skpping one word a the time
-##' @title Count skipped ngram
-##' @param s, character vector
-##' @param n the n-gram to consider
-##' @return 
-##' @author Carlos G
+
 CountNgramSkip <- function(s, n=3, skip=1){
   
   cl <- makeCluster(4)
@@ -100,7 +94,6 @@ CleanNGram <- function(n.gram.table){
 }
 
 ### Function to compute the "frequency of frequencies vector"
-# http://en.wikipedia.org/wiki/Good%E2%80%93Turing_frequency_estimation
 FreqNGramVector <- function(n.gram.table, n=1, v.size=9e5){
   res <- n.gram.table[, list(inv.freq=.N), by=count][order(count)]
   res <- rbind(data.table(count=0, inv.freq=v.size^2-sum(res$inv.freq)), res)
@@ -110,12 +103,7 @@ FreqNGramVector <- function(n.gram.table, n=1, v.size=9e5){
 ##' Implements a heuristic version of the Good-Turing Smoothing 
 ##'
 ##' When there are no n-gram with r+1, one uses the the alpha smoothing version
-##' @title Good-Turing Smoothing for adjusted count of n-grams
-##' @param DT, result of the function FreqNGramVector
-##' @param v.size, vocabulary size (number of row of the unigrams)
-##' @param alpha smoothing parameter, default 0.00017
-##' @return a data.table with column count, inv.freq and adj.count
-##' @author Carlos G
+
 GoodTuringSmoothing <- function(DT, v.size, alpha = 0.00017, ngram=3){
   n <- DT[, sum(inv.freq)]
   DT[, adj.count:=0.0]
@@ -134,12 +122,6 @@ GoodTuringSmoothing <- function(DT, v.size, alpha = 0.00017, ngram=3){
 ##' Compute the Conditional probability of trigram
 ##'
 ##' Use 3- and 2-grams to compute the conditional probability of a sentence
-##' @title Conditional Probability of Trigram computations
-##' @param nb a data.table with the with column "s" and "count" where s is a three words strings (nb = ngram big) (usually the trigram)
-##' @param ns  idem as trig but for bigrams ("s" contains two words sentence) n(gram-small) , usually the bigram
-##' @param n, the dimension of the n-gram of in nb
-##' @return a data.table with the conditional probability for each trigrams
-##' @author Carlos G
 ConditionalProbNgram <- function(nb, ns, n){
   
   if (n == 1){
@@ -163,12 +145,6 @@ ConditionalProbNgram <- function(nb, ns, n){
 }
 
 ##' Discount Factor computation
-##'
-##' Use d as the sum of 1 - \sum_{w_2} \alpha (w_2, w_1)
-##' @title Dicount Factor Computation for Back Off model
-##' @param DT , result of function CondtionalProbNgram
-##' @return a data.table with the discount factor compute as 1 - \sum_{w_2} \alpha(w_2, w_1)
-##' @author Carlos G
 ComputeDiscountFactor <- function(DT){
   res <- DT[, list(disc.f= 1 - sum(weight)), by = key.w]
   setnames(res, 'key.w', 's')
@@ -215,5 +191,5 @@ GenerateAdjustedProbTables <- function(SampleDS){
 
 prob.adj <- GenerateAdjustedProbTables(SampleDS)
 print('I finished to compute the weights. Now saving them.')
-# save(prob.adj, file='prob.adj.Rdata')
+#Compiled and saved final model to use in the predictions.
 save(prob.adj, file='~/Data Science/10 Data Science Capstone/Capstone/Proyecto/Otro/prob.ngmrams.Rdata')

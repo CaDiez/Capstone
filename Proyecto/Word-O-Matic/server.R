@@ -1,31 +1,81 @@
 # Define server logic required to summarize and view the selected dataset
 shinyServer(
   function(input, output, session) {
+    #Loading libraries
+    library('wordcloud')
+    library('xtable')
+    library('shiny')        
+    library('data.table')
+    
+    ptm <- proc.time()
+    
+    ##' Clean the String inputs from the users
+    ##'
+    ##' Cleans the strings for prediction
+    CleanInputString <- function(s){
+      s <- tolower(s)
+      s <- gsub("(\\w)-(\\w)", "\\1\1dd\\2", s)
+      s <- gsub("(\\w)'(\\w)", "\\1\2dd\\2", s)
+      s <- gsub("[[:punct:]]+", "", s)
+      s <- gsub("\1dd", "-", s, fixed = TRUE)
+      s <- gsub("\2dd", "'", s, fixed = TRUE)
+      return(s)
+    }
+    
+    ##' Word Prediction
+    ##'
+    ##' Predict the following words by looking up on the table and provide
+    ##' the table of words with the adjusted probabilities
+    PredictNextWord <- function(s, prob.adj.init){
+      
+      s <- CleanInputString(s)
+      s.l <- strsplit(tolower(s), ' ')[[1]]
+      n <- min(length(s.l), 2)
+      prob.adj <- lapply(prob.adj.init, function(x) copy(x))
+      ## Predict usual n-gram
+      idxs <- list((-(n-1):0) + length(s.l), (-2*(n-1):0) + length(s.l))
+      
+      out.l <- list()
+      i <- 1 # bad
+      for(idx in idxs){
+        s. <- paste0(s.l[idx], collapse=' ') 
+        res <- prob.adj$n3[s.][order(-weight)]
+        idx.l <- 3  
+        if (any(is.na(res$s))){
+          s.2 <- paste0(s.l[idx[-1]], collapse=' ')
+          res <- prob.adj$n2[s.2][order(-weight)]
+          idx.l <- 2
+        } 
+        out.res <- res[, list(predict.word = 
+                                unlist(lapply(strsplit(s, ' '), '[', idx.l)),
+                              weight)]
+        out.l[[i]] <- head(data.frame(out.res), 10)
+        i <- i + 1
+      }      
+      ## Predict with skipngram
+      out.res <- na.omit(rbindlist(out.l))
+      out.res <- data.table(out.res)
+      # print(out.res)
+      out.res <- out.res[, list(weight=mean(weight)), by=predict.word]
+      ## rownames(out.res) <- NULL
+      return(data.frame(out.res))
+    }
+    
     #Set progress bar fou user
-    progress <- shiny::Progress$new(session, min=1, max=3000)
+    progress <- shiny::Progress$new(session, min=1, max=500)
     on.exit(progress$close())
     progress$set(message = 'Loading libraries and data model')
     
-    #Loading libraries
-    ##library('NLP')
-    ##library('slam')
-    ##library('tm')
-    ##library('data.table')
-    ##library('RColorBrewer')
-    ##library('stringr')
-    ##library('hashFunction')
-    ##library('parallel')
-    library('wordcloud')
-    library('xtable')
-    library('shiny')
     #Load prediction model
-    source('Predictor.R')
+    load(file='prob.ngmrams.Rdata') # load the prob.adj variable
     
     #Set timer to help loading libraries & model
-    for (i in 1:3000) {
+    for (i in 1:500) {
       progress$set(value = i)
-      #Sys.sleep(0.5)
-    }
+    }    
+    
+
+    #source('Predictor.R')
     
     #Main function, gets reactions of user an generates prediction words
     generateWordList <- reactive({
@@ -51,7 +101,7 @@ shinyServer(
         }
       }  
       #Calculates processing time
-      sysTime<-proc.time() - ptm
+      proc.time() - ptm
       sysTime <<- (ptm["sys.self"])
       #Return predicted words ordered by weight
       return(predictedWords)  
@@ -85,7 +135,7 @@ shinyServer(
     output$plot <- renderPlot({
       predictedWords<-generateWordList()
       if (awc == TRUE){
-       wordcloud(predictedWords$predict.word, predictedWords$weight,                 
+       wordcloud(predictedWords$predict.word, predictedWords$weight,    
                 colors=brewer.pal(5, "Dark2"))
       }
     })   

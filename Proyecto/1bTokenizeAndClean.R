@@ -1,10 +1,9 @@
+#Tokenize and clean the source files
 library('tm')
-
 library('parallel')
 options('mc.cores' =  4)
 
-src.dir <- '~/Data Science/10 Data Science Capstone/Dataset/en_US'  # testing purpose
-
+src.dir <- '~/Data Science/10 Data Science Capstone/Dataset/en_US'  # Directory of the corpus
 src <- DirSource(src.dir)
 sampleDS <- Corpus(src, readerControl = list(reader = readPlain, language= "en",
                                          load = TRUE)) # A collection of 4 text 
@@ -57,5 +56,5 @@ CleanText <- function(corp.txt){
 
 
 SampleDS <- CleanText(sampleDS)
-#save(SampleDS, file='final/en_US/en_US_corpus_clean.RData')
+#save environment variables
 save(SampleDS, file='~/Data Science/10 Data Science Capstone/Capstone/Proyecto/Otro/cleanCorpus2.RData')

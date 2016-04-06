@@ -5,10 +5,7 @@ load(file='~/Data Science/10 Data Science Capstone/Capstone/Proyecto/prob.ngmram
 ##' Clean the String inputs from the users
 ##'
 ##' Cleans the strings for prediction
-##' @title Clean input string  
-##' @param s, a string character
-##' @return a clean version of the argument (lowercase, no punctuation)
-##' @author Carlos G
+
 CleanInputString <- function(s){
   s <- tolower(s)
   s <- gsub("(\\w)-(\\w)", "\\1\1dd\\2", s)
@@ -24,11 +21,7 @@ CleanInputString <- function(s){
 ##'
 ##' Predict the following words by looking up on the table and provide
 ##' the table of words with the adjusted weight
-##' @title Predict next word
-##' @param s, a string and we try to predict the next word
-##' @param prob.adj.init a list of adjusted probability
-##' @return a table with words
-##' @author Carlos G
+
 PredictNextWord <- function(s, prob.adj.init){
   
   s <- CleanInputString(s)
@@ -65,13 +58,12 @@ PredictNextWord <- function(s, prob.adj.init){
   ## Predict with skipngram
   out.res <- na.omit(rbindlist(out.l))
   out.res <- data.table(out.res)
-  # print(out.res)
   out.res <- out.res[, list(weight=mean(weight)), by=predicted.words]
   
-  
-  ## rownames(out.res) <- NULL
   return(data.frame(out.res))
 }
-
+#Test the funcion, to try others change the variable s to another phrase and
+#run PredictNextWord (s, prob.adj) again, the model and function will be used
+#to implement the shiny app.
 s <- 'I expect to write a '
 PredictNextWord(s, prob.adj)
