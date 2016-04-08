@@ -67,7 +67,7 @@ shinyServer(
     progress$set(message = 'Loading libraries and data model')
     
     #Load prediction model
-    load(file='prob.ngmrams.Rdata') # load the prob.adj variable
+    load(file='ProbNgramModel30.Rdata') # load the Probabilistic 30% Model
     
     #Set timer to help loading libraries & model
     for (i in 1:500) {

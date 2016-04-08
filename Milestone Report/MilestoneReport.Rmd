@@ -105,16 +105,16 @@ The entire data set (the 3 files) contains more than 4 million of lines, 574 mil
 
 3. Creating sample of the data, cleaning and profanity filtering
 --------------------------------------------------------------
-As it can be seen in the last section, the dataset is too big and also a large amount of computational resources are needed to process it, thats why to make further analysis easier and faster, I've created a random sample of the data by selecting 5000 rows from each file. With this samples I´m creating a new dataset that contains random information (using binomial distribution) that will be used as the corpus for the rest of the analysis. A [corpus](https://en.wikipedia.org/wiki/Text_corpus) (plural corpora) or text corpus is a large and structured set of texts (nowadays usually electronically stored and processed). They are used to do statistical analysis and hypothesis testing, checking occurrences or validating linguistic rules within a specific language territory.
+As it can be seen in the last section, the dataset is too big and also a large amount of computational resources are needed to process it, thats why to make further analysis easier and faster, I've created a random sample of the data by selecting 400000 rows from each file. With this samples I´m creating a new dataset that contains random information (using binomial distribution) that will be used as the corpus for the rest of the analysis. A [corpus](https://en.wikipedia.org/wiki/Text_corpus) (plural corpora) or text corpus is a large and structured set of texts (nowadays usually electronically stored and processed). They are used to do statistical analysis and hypothesis testing, checking occurrences or validating linguistic rules within a specific language territory.
 
 ```{r, warning=FALSE , message=FALSE}
 set.seed(10)
 sample=400000
 
 # Creating sample files of 5000 lines for each dataset
-blogsSample = blogs[rbinom(sample, length(blogs),0.5)]
-newsSample = news[rbinom(sample, length(news),0.5)]
-tweetSample = tweets[rbinom(sample, length(tweets),0.5)]
+blogsSample = blogs[rbinom(269786, length(blogs),0.5)]
+newsSample = news[rbinom(303072, length(news),0.5)]
+tweetSample = tweets[rbinom(708044, length(tweets),0.5)]
 
 # Merging the sample datasets into one
 sampleDS = c(blogsSample, newsSample, tweetSample)
