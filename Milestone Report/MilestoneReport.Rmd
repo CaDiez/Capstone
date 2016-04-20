@@ -112,9 +112,9 @@ set.seed(10)
 sample=400000
 
 # Creating sample files of 5000 lines for each dataset
-blogsSample = blogs[rbinom(269786, length(blogs),0.5)]
-newsSample = news[rbinom(303072, length(news),0.5)]
-tweetSample = tweets[rbinom(708044, length(tweets),0.5)]
+blogsSample = blogs[rbinom(sample, length(blogs),0.5)]
+newsSample = news[rbinom(sample, length(news),0.5)]
+tweetSample = tweets[rbinom(sample, length(tweets),0.5)]
 
 # Merging the sample datasets into one
 sampleDS = c(blogsSample, newsSample, tweetSample)

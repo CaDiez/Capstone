@@ -1,6 +1,7 @@
 library('data.table')
 
-load(file='~/Data Science/10 Data Science Capstone/Capstone/Proyecto/prob.ngmrams.Rdata') # load the prob.adj variable
+load(file='~/Data Science/10 Data Science Capstone/Capstone/Proyecto/Word-O-Matic/ProbNgramModel30.Rdata') # load the prob.adj variable
+#load(file='~/Data Science/10 Data Science Capstone/Programas Auxiliares/prob.ngmrams.Rdata') # load the prob.adj variable
 
 ##' Clean the String inputs from the users
 ##'

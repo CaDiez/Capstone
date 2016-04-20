@@ -1,0 +1,42 @@
+Word-O-Matic, a Natural Language Predictor.
+========================================================
+author: Carlos Alberto Guevara Diez
+date: April, 2016
+transition: rotate
+transition-speed: slow 
+The slides are also available at rpubs:
+http://rpubs.com/CaDiez/Word-O-Matic
+
+Introduction
+========================================================
+In this project I have worked analyzing a large corpus of text documents to discover the structure in the data and how words are put together. It covers cleaning and analyzing text data, then building and sampling from a predictive text model. Finally, I have built a predictive text product that suggests the next word according to a trained model that uses [Swiftkey data](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip) from twitter, blogs and news.
+
+In the next slides I will explain the basics of the model, the way in which the application works and some final thoughts about this project.
+
+About the NLP Model
+========================================================
+For modelling I have used N-grams as features for prediction, Good-Turing adjusted counts for unseen words and smoothing by Back-Off, all the codes with inner documentation can be found on my [Github Page](https://github.com/CaDiez/Capstone), the highlights are:
+
+- There are 3 main steps to build this app: 1. Tokenize and cleaning, 2. Modelling probabilistic Model and 3. Building the prediction Function.
+- To train the final model I have used a 30% random sample of the original data, this number was chosen considering time response of the shiny app and accuraccy of predictions.
+- The N-gram model was made of uni, bi and tri-grams and a simulation of 4 and 5-grams.
+- Accuraccy of the final model is 26%.
+
+How to use Shiny Application
+========================================================
+The Shiny application  can be accessed following the link:
+[Word-O-Matic](https://cadiez.shinyapps.io/Word-O-Matic)
+
+- *Prediction engine panel* presents a textbox with a default phrase, below this several options for next word are presented, you may click the word of your preference or type it directly in the text box, when you do this new predictions are shown. Next to the right a table that presents the prediction word with its weight and a word cloud graphic are shown, the word cloud might be enabled or disabled by clicking the checkbox.
+
+- *App information panel* shows you a brief of how to use the application, general considerations for its implementation and the links to github codes and this paper.
+
+Final thoughts and future improvements
+========================================================
+During this project I have learned that a big amount of computational resources are needed  to modelling, any little error can cost you out of error screens and time wasted, also I understand that accuraccy is not always best choice, you have to create a mixture of speed, usability and accuraccy to deliver a final product. The next steps to look into are:
+
+- Implementation of a 4-gram and maybe 5-gram model.
+- Tweaking on modelling and implementation of Good-Turing and Back-Off.
+- Getting more computational resources in the cloud to implement more aggresive techiques.
+
+Thank you for reading this presentation. I loved this project.

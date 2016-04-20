@@ -8,8 +8,8 @@
 shinyUI(fluidPage(
   titlePanel(em(strong("Word-O-Matic", style = "color:#00008B; size=4"))),
   h4("A Natural Language Predictor by CGX", style = "color:#202020 "),
-  h5(strong("Please be patient, Word-O-Matic takes about 10 seconds depending on your computational resources (only the first time) to load the data."), style = "color:red "),
-  hr(style = "color:#00008B"),
+  h5(strong("Please be patient, Word-O-Matic takes about 10 seconds depending on your computational resources to load the data (only the first time)."), style = "color:red "),
+  shiny::hr(style = "color:#00008B"),
   mainPanel(
     tabsetPanel(
       # Prediction engine tab
@@ -23,7 +23,7 @@ shinyUI(fluidPage(
                         br(),
                         tags$textarea(id="wt_1", rows=5, cols=40,"Text prediction it is so "),
                         uiOutput("Dynamic"),
-                        hr(style = "color:#00008B"),
+                        shiny::hr(style = "color:#00008B"),
                         strong("Processing time of Word Prediction: ",  style = "color:#202020 "),
                         textOutput('time'),                               
                         br(),
