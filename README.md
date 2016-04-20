@@ -1,2 +1,4 @@
-# Capstone
-Natural Language Processing - Capstone
+# Coursera Capstone Projet
+Natural Language Processing
+
+By Carlos Alberto Guevara Diez
